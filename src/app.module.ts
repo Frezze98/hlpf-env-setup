@@ -5,6 +5,12 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { Category } from './categories/category.entity';
+import { Product } from './products/product.entity';
+import { CreateTables17000000011700000001 } from './migrations/1700000001-CreateTables';
+import { AddIsActiveToProducts1774521331353 } from './migrations/1774521331353-AddIsActiveToProducts';
+import { CategoriesModule } from './categories/categories.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -16,8 +22,13 @@ import { AppService } from './app.service';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      entities: [],
-      synchronize: true, // тільки для розробки!
+      entities: [Category, Product],
+      synchronize: false,
+      migrationsRun: true,
+      migrations: [
+        CreateTables17000000011700000001,
+        AddIsActiveToProducts1774521331353,
+      ],
     }),
     CacheModule.registerAsync({
       isGlobal: true,
@@ -28,9 +39,12 @@ import { AppService } from './app.service';
             port: parseInt(process.env.REDIS_PORT as string, 10),
           },
         }),
-        ttl: 60 * 1000, // 60 секунд у мілісекундах
+        ttl: 60 * 1000,
       }),
     }),
+    // Реєструємо їх тут
+    CategoriesModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
