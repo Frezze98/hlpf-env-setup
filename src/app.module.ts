@@ -7,10 +7,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { Category } from './categories/category.entity';
 import { Product } from './products/product.entity';
+import { User } from './users/user.entity';
 import { CreateTables17000000011700000001 } from './migrations/1700000001-CreateTables';
 import { AddIsActiveToProducts1774521331353 } from './migrations/1774521331353-AddIsActiveToProducts';
+import { CreateUsers1777205033703 } from './migrations/1777205033703-CreateUsers';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -22,12 +26,13 @@ import { ProductsModule } from './products/products.module';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      entities: [Category, Product],
+      entities: [Category, Product, User],
       synchronize: false,
       migrationsRun: true,
       migrations: [
         CreateTables17000000011700000001,
         AddIsActiveToProducts1774521331353,
+        CreateUsers1777205033703,
       ],
     }),
     CacheModule.registerAsync({
@@ -45,6 +50,8 @@ import { ProductsModule } from './products/products.module';
     // Реєструємо їх тут
     CategoriesModule,
     ProductsModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
