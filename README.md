@@ -2,23 +2,16 @@
 - Name: Юрчик Владислав Сергійович
 - Group: 232/2on
 
-## Практичне заняття №5 — JWT Authentication + Guards + RBAC
+## Практичне заняття №6 — Interceptors + Exception Filters + Swagger
 
 ### Структура репозиторію
 ```text
 .
 ├── src/
-│   ├── auth/
-│   │   ├── dto/
-│   │   │   ├── register.dto.ts
-│   │   │   └── login.dto.ts
-│   │   ├── auth.module.ts
-│   │   ├── auth.service.ts
-│   │   └── auth.controller.ts
-│   ├── users/
-│   │   ├── user.entity.ts
-│   │   ├── users.module.ts
-│   │   └── users.service.ts
+│   ├── auth/ ...
+│   ├── users/ ...
+│   ├── categories/ ...
+│   ├── products/ ...
 │   ├── common/
 │   │   ├── enums/
 │   │   │   └── role.enum.ts
@@ -28,80 +21,81 @@
 │   │   ├── decorators/
 │   │   │   ├── current-user.decorator.ts
 │   │   │   └── roles.decorator.ts
-│   ├── categories/
-│   ├── products/
+│   │   ├── interceptors/
+│   │   │   ├── logging.interceptor.ts
+│   │   │   └── transform.interceptor.ts
+│   │   ├── filters/
+│   │   │   └── http-exception.filter.ts
+│   │   └── pipes/
+│   │   	└── trim.pipe.ts
 │   ├── migrations/
-│   ├── data-source.ts
 │   ├── main.ts
 │   └── app.module.ts
+├── swagger-screenshot.png
 ├── Dockerfile
 ├── docker-compose.yml
 └── README.md
 ```
-
 ### Запуск проекту
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-### Тест реєстрації користувача
-```text
-id : 1
-email : admin@test.com
-name : Admin
-role : user
-createdAt : 2026-04-26T12:22:34.125Z
+### Swagger UI
+```
+http://localhost:3000/api/docs
 ```
 
-### Тест логіну та отримання JWT токена
-```text
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5AdGVzdC5jb20i
-LCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NzcyMDcyMDQsImV4cCI6MTc3NzIxMDgwNH0.rirI2vYz
-6iiy_7sZA8npPnCuw0UYq0nNEIke4-vS9to
+### Формат успішної відповіді (Тест TransformInterceptor)
+```
+{
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5AdGVzdC5jb20iLCJyb2xlIjoidXNlciIsImlhdCI6MTc3ODA5NjMwMCwiZXhwIjoxNzc4MDk5OTAwfQ.7Nxav6f9oyw_8rIV-AiB-tixCX9nfNq2nyiOz46UFbk"
+  },
+  "statusCode": 200,
+  "timestamp": "2026-05-06T19:38:20.459Z"
+}
 ```
 
-### Тест захисту — спроба створення без токена (401 Unauthorized)
-```text
-Invoke-RestMethod : {&quot;message&quot;:&quot;Токен відсутній&quot;,&quot;error&quot;:&quot;Unauthorized&quot;,&quot;statusCode&quot;:401}
-At line:1 char:1
-+ Invoke-RestMethod -Uri
-&quot;[http://127.0.0.1:3000/api/categories](http://127.0.0.1:3000/api/categories)&quot; -Method ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-+ CategoryInfo : InvalidOperation: (System.Net.HttpWebRequest:HttpWebRequest)
-[Invoke-RestMethod], WebException
-+ FullyQualifiedErrorId :
-WebCmdletWebResponseException,Microsoft.PowerShell.Commands.InvokeRestMethodCom
-mand
+### Формат помилки (Тест HttpExceptionFilter)
+```
+{
+  "error": {
+    "code": 403,
+    "message": "Недостатньо прав доступу",
+    "traceId": "ff54a299-f66d-46e8-8c51-0c21b3b6fb8f"
+  },
+  "timestamp": "2026-05-06T19:47:51.062Z"
+}
 ```
 
-### Тест захисту — роль user (403 Forbidden)
-```text
-Invoke-RestMethod : {&quot;message&quot;:&quot;Недостатньо прав
-доступу&quot;,&quot;error&quot;:&quot;Forbidden&quot;,&quot;statusCode&quot;:403}
-At line:1 char:1
-+ Invoke-RestMethod -Uri
-&quot;[http://127.0.0.1:3000/api/products](http://127.0.0.1:3000/api/products)&quot; -Method ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-+ CategoryInfo : InvalidOperation: (System.Net.HttpWebRequest:HttpWebRequest)
-[Invoke-RestMethod], WebException
+### Приклад логів (Тест LoggingInterceptor)
+```
+app-1  | [HTTP] POST /auth/login — 200 — 45ms
+app-1  | [HTTP] POST /api/products — 403 — 12ms
+app-1  | [HTTP] POST /api/products — 500 — 21ms
+app-1  | [HTTP] POST /api/products — 201 — 38ms
 ```
 
-### Тест успішне створення категорії (Admin)
-```text
-id name description createdAt
--- ---- ----------- ---------
-7 Admin Category 2026-04-26T12:40:08.389Z
+### Тест помилки валідації з traceId
 ```
+curl -X 'POST' \
+  'http://localhost:3000/api/products' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{ "name": "", "price": -5 }'
 
-### Тест успішне створення продукту (Admin)
-```text
-id : 3
-name : Real iPhone
-description :
-price : 999.99
-stock : 10
-isActive : True
-createdAt : 2026-04-26T12:32:13.999Z
-updatedAt : 2026-04-26T12:32:13.999Z
+{
+  "error": {
+    "code": 400,
+    "message": "Validation failed",
+    "details": [
+      "name must be longer than or equal to 2 characters",
+      "price must not be less than 0.01"
+    ],
+    "traceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  },
+  "timestamp": "2026-05-06T19:50:00.000Z"
+}
 ```
