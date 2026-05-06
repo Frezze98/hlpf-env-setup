@@ -46,6 +46,7 @@ docker compose up --build
 ```
 http://localhost:3000/api/docs
 ```
+![Swagger](swagger-screenshot.png)
 
 ### Формат успішної відповіді (Тест TransformInterceptor)
 ```
