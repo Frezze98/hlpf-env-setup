@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductQueryDto } from './dto/product-query.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -15,17 +16,21 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Отримати всі продукти',
-    description: 'Повертає список усіх продуктів з вкладеними категоріями. Публічний ендпоінт.',
+    summary: 'Отримати продукти з пагінацією',
+    description: 'Повертає список продуктів з мета-інформацією. Підтримує пагінацію, сортування, фільтрацію та пошук.',
   })
-  @ApiResponse({ status: 200, description: 'Список продуктів' })
-  findAll() { return this.productsService.findAll(); }
+  @ApiResponse({ status: 200, description: 'Список продуктів з мета-інформацією' })
+  findAll(@Query() query: ProductQueryDto) {
+    return this.productsService.findAll(query);
+  }
 
   @Get(':id')
   @ApiOperation({ summary: 'Отримати продукт за ID' })
   @ApiResponse({ status: 200, description: 'Продукт знайдено' })
   @ApiResponse({ status: 404, description: 'Продукт не знайдено' })
-  findOne(@Param('id', ParseIntPipe) id: number) { return this.productsService.findOne(id); }
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.findOne(id);
+  }
 
   @Post()
   @ApiBearerAuth()
@@ -36,7 +41,9 @@ export class ProductsController {
   @ApiResponse({ status: 403, description: 'Недостатньо прав' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  create(@Body() dto: CreateProductDto) { return this.productsService.create(dto); }
+  create(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
+  }
 
   @Patch(':id')
   @ApiBearerAuth()
@@ -45,7 +52,9 @@ export class ProductsController {
   @ApiResponse({ status: 404, description: 'Продукт не знайдено' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProductDto) { return this.productsService.update(id, dto); }
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
+    return this.productsService.update(id, dto);
+  }
 
   @Delete(':id')
   @ApiBearerAuth()
@@ -53,5 +62,7 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Продукт видалено' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  remove(@Param('id', ParseIntPipe) id: number) { return this.productsService.remove(id); }
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.remove(id);
+  }
 }
