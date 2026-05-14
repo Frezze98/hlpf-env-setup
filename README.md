@@ -1,102 +1,162 @@
 ## Student
 - Name: Юрчик Владислав Сергійович
-- Group: 232/2on
+- Group: 232/2он
 
-## Практичне заняття №6 — Interceptors + Exception Filters + Swagger
+## Практичне заняття №7 — Redis кешування + Query параметри + Pagination
 
-### Структура репозиторію
+### Структура репозиторію (нові файли)
 ```text
 .
 ├── src/
-│   ├── auth/ ...
-│   ├── users/ ...
-│   ├── categories/ ...
-│   ├── products/ ...
-│   ├── common/
-│   │   ├── enums/
-│   │   │   └── role.enum.ts
-│   │   ├── guards/
-│   │   │   ├── jwt-auth.guard.ts
-│   │   │   └── roles.guard.ts
-│   │   ├── decorators/
-│   │   │   ├── current-user.decorator.ts
-│   │   │   └── roles.decorator.ts
-│   │   ├── interceptors/
-│   │   │   ├── logging.interceptor.ts
-│   │   │   └── transform.interceptor.ts
-│   │   ├── filters/
-│   │   │   └── http-exception.filter.ts
-│   │   └── pipes/
-│   │   	└── trim.pipe.ts
-│   ├── migrations/
-│   ├── main.ts
-│   └── app.module.ts
-├── swagger-screenshot.png
-├── Dockerfile
-├── docker-compose.yml
+│   ├── products/
+│   │   ├── dto/
+│   │   │   └── product-query.dto.ts
+│   │   ├── products.service.ts
+│   │   └── products.controller.ts
+│   ├── seeds/
+│   │   └── seed.ts
+│   └── ...
+├── package.json
 └── README.md
 ```
-### Запуск проекту
+### Запуск проекту та наповнення БД
 ```bash
 cp .env.example .env
-docker compose up --build
+docker compose up --build -d
+docker compose run --rm app npm run seed
 ```
 
-### Swagger UI
+### API: GET /api/products
 ```
-http://localhost:3000/api/docs
+|  Параметр  |    Тип     |  Default  |              Опис               |
+|------------|------------|-----------|---------------------------------|
+| page       | number     | 1         | Номер сторінки                  |
+| pageSize   | number     | 10        | Елементів на сторінку (max 100) |
+| sort       | string     | createdAt | Поле сортування                 |
+| order      | asc/desc   | desc      | Напрямок                        |
+| categoryId | number     | -         | Фільтр за категорією            |
+| minPrice   | number     | -         | Мінімальна ціна                 |
+| maxPrice   | number     | -         | Максимальна ціна                |
+| search     | string     | -         | Пошук за назвою (ILIKE)         |
 ```
-![Swagger](swagger-screenshot.png)
 
-### Формат успішної відповіді (Тест TransformInterceptor)
+### Формат успішної відповіді з пагінацією (Тест GET /api/products?page=1&pageSize=5)
 ```
 {
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5AdGVzdC5jb20iLCJyb2xlIjoidXNlciIsImlhdCI6MTc3ODA5NjMwMCwiZXhwIjoxNzc4MDk5OTAwfQ.7Nxav6f9oyw_8rIV-AiB-tixCX9nfNq2nyiOz46UFbk"
+    "items": [
+      {
+        "id": 32,
+        "name": "Hoodie NestJS v3",
+        "description": null,
+        "price": "75.00",
+        "stock": 75,
+        "isActive": true,
+        "category": {
+          "id": 3,
+          "name": "Clothing",
+          "description": null,
+          "createdAt": "2026-05-14T07:44:38.399Z"
+        },
+        "createdAt": "2026-05-14T07:48:24.849Z",
+        "updatedAt": "2026-05-14T07:48:24.849Z"
+      }
+      // ... ще 4 продукти ...
+    ],
+    "meta": {
+      "page": 1,
+      "pageSize": 5,
+      "total": 31,
+      "totalPages": 7
+    }
   },
   "statusCode": 200,
-  "timestamp": "2026-05-06T19:38:20.459Z"
+  "timestamp": "2026-05-14T07:56:20.043Z"
 }
 ```
 
-### Формат помилки (Тест HttpExceptionFilter)
+### Тест фільтрації (GET /api/products?categoryId=1&minPrice=500)
 ```
 {
-  "error": {
-    "code": 403,
-    "message": "Недостатньо прав доступу",
-    "traceId": "ff54a299-f66d-46e8-8c51-0c21b3b6fb8f"
-  },
-  "timestamp": "2026-05-06T19:47:51.062Z"
-}
-```
-
-### Приклад логів (Тест LoggingInterceptor)
-```
-app-1  | [HTTP] POST /auth/login — 200 — 45ms
-app-1  | [HTTP] POST /api/products — 403 — 12ms
-app-1  | [HTTP] POST /api/products — 500 — 21ms
-app-1  | [HTTP] POST /api/products — 201 — 38ms
-```
-
-### Тест помилки валідації з traceId
-```
-curl -X 'POST' \
-  'http://localhost:3000/api/products' \
-  -H 'accept: */*' \
-  -H 'Content-Type: application/json' \
-  -d '{ "name": "", "price": -5 }'
-
-{
-  "error": {
-    "code": 400,
-    "message": "Validation failed",
-    "details": [
-      "name must be longer than or equal to 2 characters",
-      "price must not be less than 0.01"
+  "data": {
+    "items": [
+      {
+        "id": 26,
+        "name": "iPad Air v3",
+        "price": "619.00",
+        "stock": 30,
+        "category": {
+          "id": 1,
+          "name": "Electronics"
+        }
+      },
+      {
+        "id": 25,
+        "name": "MacBook Pro v3",
+        "price": "2519.00",
+        "stock": 15,
+        "category": {
+          "id": 1,
+          "name": "Electronics"
+        }
+      }
+      // ... та інші ...
     ],
-    "traceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    "meta": {
+      "page": 1,
+      "pageSize": 10,
+      "total": 12,
+      "totalPages": 2
+    }
   },
-  "timestamp": "2026-05-06T19:50:00.000Z"
+  "statusCode": 200,
+  "timestamp": "2026-05-14T07:56:28.323Z"
 }
+```
+
+### Тест пошуку (GET /api/products?search=mac)
+```
+{
+  "data": {
+    "items": [
+      {
+        "id": 25,
+        "name": "MacBook Pro v3",
+        "price": "2519.00"
+      },
+      {
+        "id": 15,
+        "name": "MacBook Pro v2",
+        "price": "2509.00"
+      },
+      {
+        "id": 5,
+        "name": "MacBook Pro",
+        "price": "2499.00"
+      },
+      {
+        "id": 2,
+        "name": "MacBook Air M4",
+        "price": "1299.99"
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "pageSize": 10,
+      "total": 4,
+      "totalPages": 1
+    }
+  },
+  "statusCode": 200,
+  "timestamp": "2026-05-14T07:56:32.613Z"
+}
+```
+
+### Тест кешування (Redis)
+```
+docker compose exec redis redis-cli KEYS "products:*"
+
+1) "products:{\"page\":1,\"pageSize\":5}"
+2) "products:{\"categoryId\":\"1\",\"minPrice\":\"500\"}"
+3) "products:{\"search\":\"mac\"}"
 ```
